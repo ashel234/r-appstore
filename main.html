@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>R App Store</title>
+  <style>
+    body {
+      background: #0f1724;
+      color: #e6eef8;
+      font-family: "Poppins", sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    header h1 {
+      color: #7c5cff;
+      font-size: 2rem;
+    }
+    header p {
+      color: #9db0ff;
+      margin-bottom: 25px;
+    }
+    button {
+      background: linear-gradient(90deg, #7c5cff, #00d4ff);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 500;
+      transition: 0.3s;
+    }
+    button:hover {
+      transform: scale(1.05);
+      opacity: 0.9;
+    }
+    #progress {
+      margin: 10px 0;
+      font-size: 14px;
+      color: #00d4ff;
+    }
+    #appList {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 25px;
+    }
+    .app {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 16px;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      transition: 0.3s;
+    }
+    .app:hover {
+      transform: translateY(-4px);
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .app h3 {
+      color: #fff;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .app a {
+      display: inline-block;
+      margin-top: 6px;
+      color: #00d4ff;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .app a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>R App Store</h1>
+    <p>Upload & Download APKs Instantly 🚀</p>
+  </header>
+
+  <main>
+    <input type="file" id="apkInput" accept=".apk" hidden />
+    <button id="uploadBtn">Upload APK</button>
+    <div id="progress"></div>
+    <section id="appList"></section>
+  </main>
+
+  <script>
+    const input = document.getElementById('apkInput');
+    const btn = document.getElementById('uploadBtn');
+    const progress = document.getElementById('progress');
+    const appList = document.getElementById('appList');
+
+    // Load existing apps
+    async function loadApps() {
+      try {
+        const res = await fetch('backend/list.php');
+        const apps = await res.json();
+        appList.innerHTML = '';
+        apps.forEach(app => {
+          const div = document.createElement('div');
+          div.className = 'app';
+          div.innerHTML = `
+            <h3>${app.name}</h3>
+            <a href="backend/uploads/${app.name}" download>⬇️ Download</a>
+          `;
+          appList.prepend(div);
+        });
+      } catch (err) {
+        appList.innerHTML = '<p style="color:red;">⚠️ Error loading apps</p>';
+      }
+    }
+
+    // Upload logic
+    btn.addEventListener('click', () => input.click());
+
+    input.addEventListener('change', async () => {
+      const file = input.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('apk', file);
+      progress.textContent = 'Uploading...';
+
+      try {
+        const res = await fetch('backend/upload.php', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          progress.textContent = '✅ Uploaded successfully!';
+          loadApps();
+        } else {
+          progress.textContent = '❌ Upload failed: ' + data.error;
+        }
+      } catch (err) {
+        progress.textContent = '⚠️ Server error: ' + err.message;
+      }
+    });
+
+    loadApps();
+  </script>
+</body>
+</html>
